@@ -2819,16 +2819,16 @@ class USBContext(_LibUSB1Finalizer):
         return handle
 
     @_validContext
-    def hotplugDeregisterCallback(self, handle):
-        """
-        Deregisters an hotplug callback.
+    def hotplugDeregisterCallback(self, handle) -> None:
+        """Deregisters a hotplug callback.
+
         handle (opaque)
             Return value of a former hotplugRegisterCallback call.
         """
         del self.__hotplug_callback_dict[handle]
         libusb1.libusb_hotplug_deregister_callback(self.__context_p, handle)
 
-    def __log_callback(self, _unused_context_p, level, value):
+    def __log_callback(self, _unused_context_p, level, value) -> None:
         """
         Internal log callback function, calls into the user-provided function
         if any.
@@ -2865,7 +2865,7 @@ class USBContext(_LibUSB1Finalizer):
 
 del USBContext._validContext
 
-def getVersion():
+def getVersion() -> Version:
     """
     Returns underlying libusb's version information as a 6-namedtuple (or
     6-tuple if namedtuples are not avaiable):

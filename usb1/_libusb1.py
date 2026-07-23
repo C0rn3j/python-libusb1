@@ -60,6 +60,10 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Never
+    def libusb_hotplug_deregister_callback(
+        ctx: c_void_p,
+        handle: c_int,
+    ) -> None: ...
 
 class Enum:
     def __init__(self, member_dict, scope_dict=None) -> None:

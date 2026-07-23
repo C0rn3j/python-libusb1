@@ -31,10 +31,10 @@ import usb1
 from . import libusb1
 
 if TYPE_CHECKING:
-	from _ctypes import _Pointer
-	from typing import Self
+    from _ctypes import _Pointer
+    from typing import Self
 
-	from usb1 import USBTransfer
+    from usb1 import USBTransfer
 
 buff_len = 1024
 buffer_base = [x % 256 for x in range(buff_len)]
