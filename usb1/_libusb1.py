@@ -16,32 +16,53 @@
 
 # pylint: disable=invalid-name, too-few-public-methods, too-many-arguments
 # pylint: disable=missing-docstring, too-many-lines
-"""
-Python ctypes bindings for libusb-1.0.
+"""Python ctypes bindings for libusb-1.0.
 
 You should not need to import this if you use usb1 module.
 
 Declares all constants, data structures and exported symbols.
 Some are only available after calling loadLibrary.
 """
-from ctypes import (
-    Structure, LittleEndianStructure,
-    Union,
-    CFUNCTYPE, POINTER, addressof, sizeof, cast,
-    c_short, c_int, c_uint, c_long, c_longlong,
-    c_uint8, c_uint16, c_uint32,
-    c_void_p, c_char_p, py_object, pointer, c_char,
-    c_ssize_t, CDLL
-)
+from __future__ import annotations
+
 import ctypes.util
 import errno
 import os.path
 import platform
 import sys
+from ctypes import (
+    CDLL,
+    CFUNCTYPE,
+    POINTER,
+    LittleEndianStructure,
+    Structure,
+    Union,
+    addressof,
+    c_char,
+    c_char_p,
+    c_int,
+    c_long,
+    c_longlong,
+    c_short,
+    c_ssize_t,
+    c_uint,
+    c_uint8,
+    c_uint16,
+    c_uint32,
+    c_void_p,
+    cast,
+    pointer,
+    py_object,
+    sizeof,
+)
 from threading import Lock
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import Never
 
 class Enum:
-    def __init__(self, member_dict, scope_dict=None):
+    def __init__(self, member_dict, scope_dict=None) -> None:
         if scope_dict is None:
             # Affect caller's locals, not this module's.
             # pylint: disable=protected-access
@@ -71,10 +92,8 @@ class Enum:
     def get(self, value, default=None):
         return self.reverse_dict.get(value, default)
 
-def buffer_at(address, length):
-    """
-    Simular to ctypes.string_at, but zero-copy and requires an integer address.
-    """
+def buffer_at(address, length) -> bytearray:
+    """Simular to ctypes.string_at, but zero-copy and requires an integer address."""
     return bytearray((c_char * length).from_address(address))
 
 _desc_type_dict = {
@@ -124,21 +143,22 @@ def newDescriptor(field_name_list):
 
 # Stand-in for the function until libusb is loaded - if the current libusb
 # version has this export.
-def libusb_strerror(_unused_errcode):
+# TODO(Martin): Surely this is not needed to be here this way??
+def libusb_strerror(_unused_errcode) -> str | None:
     return None
 
 class USBError(Exception):
     value = None
 
-    def __init__(self, value=None):
+    def __init__(self, value=None) -> None:
         Exception.__init__(self)
         if value is not None:
             self.value = value
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{libusb_error.get(self.value, "Unknown error")} [{self.value}]'
 
-    def getMessage(self):
+    def getMessage(self) -> str | None:
         """
         Get user-friendly message representing the current error, and based on
         the current locale.
@@ -172,7 +192,7 @@ if platform.system() == 'Windows':
 else:
     LIBUSB_CALL_FUNCTYPE = CFUNCTYPE
 
-def __getLibrary():
+def __getLibrary() -> CDLL:
     my_dir = os.path.dirname(__file__)
     system = platform.system()
     # If this is a binary wheel, try to use an integrated libusb first.
@@ -235,9 +255,8 @@ def __getLibrary():
 __load_lock = Lock()
 __loaded = False
 
-def loadLibrary(libusb=None):
-    """
-    Load C library.
+def loadLibrary(libusb: CDLL | None = None) -> bool:
+    """Load C library.
 
     libusb (ctypes.CDLL, ctypes.WinDLL, None)
         If None, the C library will be searched for in several platform-
@@ -261,7 +280,7 @@ def loadLibrary(libusb=None):
                 return True
     return libusb is None or globals()['libusb'] is libusb
 
-def __loadLibrary(libusb): # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+def __loadLibrary(libusb: CDLL | None) -> None: # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     # WARNING: every local in this function will be stored in
     # globals . Treat this namespace the same as the module's.
     if libusb is None:
@@ -333,7 +352,7 @@ def __loadLibrary(libusb): # pylint: disable=too-many-locals,too-many-branches,t
     try:
         libusb_set_log_cb = libusb.libusb_set_log_cb
     except AttributeError:
-        def libusb_set_log_cb(ctx, cb, mode):
+        def libusb_set_log_cb(ctx, cb, mode) -> None:
             pass
     else:
         libusb_set_log_cb.argtypes = [libusb_context_p, libusb_log_cb_p, c_int]
@@ -365,7 +384,7 @@ def __loadLibrary(libusb): # pylint: disable=too-many-locals,too-many-branches,t
         libusb_error_name = libusb.libusb_error_name
     except AttributeError:
         # pylint: disable=unused-argument
-        def libusb_error_name(errcode):
+        def libusb_error_name(errcode) -> None:
             return None
         # pylint: enable=unused-argument
     else:
@@ -375,7 +394,7 @@ def __loadLibrary(libusb): # pylint: disable=too-many-locals,too-many-branches,t
     try:
         libusb_setlocale = libusb.libusb_setlocale
     except AttributeError:
-        def libusb_setlocale(_unused_locale):
+        def libusb_setlocale(_unused_locale) -> None:
             pass
     else:
         libusb_setlocale.argtypes = [c_char_p]
@@ -493,7 +512,7 @@ def __loadLibrary(libusb): # pylint: disable=too-many-locals,too-many-branches,t
         # It has been added in r234193, but is lacking in default 9.x install as
         # of this change. Provide a fallback to error-out only if actually used.
         # pylint: disable=unused-argument
-        def libusb_get_max_iso_packet_size(_, __):
+        def libusb_get_max_iso_packet_size(_, __) -> Never:
             raise NotImplementedError
         # pylint: enable=unused-argument
     else:
@@ -505,7 +524,7 @@ def __loadLibrary(libusb): # pylint: disable=too-many-locals,too-many-branches,t
         libusb_wrap_sys_device = libusb.libusb_wrap_sys_device
     except AttributeError:
         # pylint: enable=unused-argument
-        def libusb_wrap_sys_device(_, __, ___):
+        def libusb_wrap_sys_device(_, __, ___) -> Never:
             raise NotImplementedError
         # pylint: disable=unused-argument
     else:
@@ -685,7 +704,7 @@ def __loadLibrary(libusb): # pylint: disable=too-many-locals,too-many-branches,t
     try:
         libusb_interrupt_event_handler = libusb.libusb_interrupt_event_handler
     except AttributeError:
-        def libusb_interrupt_event_handler(_):
+        def libusb_interrupt_event_handler(_) -> Never:
             raise NotImplementedError
     else:
         libusb_interrupt_event_handler.argtypes = [libusb_context_p]
@@ -1313,7 +1332,7 @@ libusb_option = Enum({
 # \param transfer a transfer
 # \returns pointer to the first byte of the data section
 
-def libusb_control_transfer_get_data(transfer_p):
+def libusb_control_transfer_get_data(transfer_p) -> bytearray:
     transfer = transfer_p.contents
     return buffer_at(transfer.buffer, transfer.length)[
         LIBUSB_CONTROL_SETUP_SIZE:]
@@ -1322,7 +1341,7 @@ def libusb_control_transfer_get_setup(transfer_p):
     return cast(transfer_p.contents.buffer, libusb_control_setup_p)
 
 def libusb_fill_control_setup(
-        setup_p, bmRequestType, bRequest, wValue, wIndex, wLength):
+        setup_p, bmRequestType, bRequest, wValue, wIndex, wLength) -> None:
     setup = cast(setup_p, libusb_control_setup_p).contents
     setup.bmRequestType = bmRequestType
     setup.bRequest = bRequest
@@ -1332,7 +1351,7 @@ def libusb_fill_control_setup(
 
 # pylint: disable=redefined-builtin
 def libusb_fill_control_transfer(
-        transfer_p, dev_handle, buffer, callback, user_data, timeout):
+        transfer_p, dev_handle, buffer, callback, user_data, timeout) -> None:
     transfer = transfer_p.contents
     transfer.dev_handle = dev_handle
     transfer.endpoint = 0
@@ -1354,7 +1373,7 @@ def libusb_fill_control_transfer(
 # pylint: disable=redefined-builtin
 def libusb_fill_bulk_transfer(
         transfer_p, dev_handle, endpoint, buffer, length,
-        callback, user_data, timeout):
+        callback, user_data, timeout) -> None:
     transfer = transfer_p.contents
     transfer.dev_handle = dev_handle
     transfer.endpoint = endpoint
@@ -1371,7 +1390,7 @@ def libusb_fill_bulk_transfer(
 # pylint: disable=redefined-builtin
 def libusb_fill_interrupt_transfer(
         transfer_p, dev_handle, endpoint, buffer,
-        length, callback, user_data, timeout):
+        length, callback, user_data, timeout) -> None:
     transfer = transfer_p.contents
     transfer.dev_handle = dev_handle
     transfer.endpoint = endpoint
@@ -1388,7 +1407,7 @@ def libusb_fill_interrupt_transfer(
 # pylint: disable=redefined-builtin
 def libusb_fill_iso_transfer(
         transfer_p, dev_handle, endpoint, buffer, length,
-        num_iso_packets, callback, user_data, timeout):
+        num_iso_packets, callback, user_data, timeout) -> None:
     transfer = transfer_p.contents
     transfer.dev_handle = dev_handle
     transfer.endpoint = endpoint
@@ -1414,7 +1433,7 @@ def get_iso_packet_list(transfer_p):
     """
     return _get_iso_packet_list(transfer_p.contents)
 
-def _get_iso_packet_buffer(transfer, offset, length):
+def _get_iso_packet_buffer(transfer, offset, length) -> bytearray:
     return buffer_at(transfer.buffer + offset, length)
 
 def get_iso_packet_buffer_list(transfer_p):
@@ -1452,12 +1471,12 @@ def get_extra(descriptor):
             extra = extra[length:]
     return result
 
-def libusb_set_iso_packet_lengths(transfer_p, length):
+def libusb_set_iso_packet_lengths(transfer_p, length) -> None:
     transfer = transfer_p.contents
     for iso_packet_desc in _get_iso_packet_list(transfer):
         iso_packet_desc.length = length
 
-def libusb_get_iso_packet_buffer(transfer_p, packet):
+def libusb_get_iso_packet_buffer(transfer_p, packet) -> bytearray | None:
     transfer = transfer_p.contents
     offset = 0
     if packet >= transfer.num_iso_packets:
@@ -1468,7 +1487,7 @@ def libusb_get_iso_packet_buffer(transfer_p, packet):
     return _get_iso_packet_buffer(
         transfer, offset, iso_packet_desc_list[packet].length)
 
-def libusb_get_iso_packet_buffer_simple(transfer_p, packet):
+def libusb_get_iso_packet_buffer_simple(transfer_p, packet) -> bytearray | None:
     transfer = transfer_p.contents
     if packet >= transfer.num_iso_packets:
         return None

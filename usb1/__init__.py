@@ -17,8 +17,7 @@
 # pylint: disable=invalid-name, too-many-locals, too-many-arguments
 # pylint: disable=too-many-public-methods, too-many-instance-attributes
 # pylint: disable=missing-docstring, too-many-lines
-"""
-Pythonic wrapper for libusb-1.0.
+"""Pythonic wrapper for libusb-1.0.
 
 The first thing you must do is to get an "USB context". To do so, create an
 USBContext instance.
@@ -44,13 +43,13 @@ SUPER_SPEED_OPERATION, so it is a valid python identifier.
 All LIBUSB_ERROR_* constants are available in this module as exception classes,
 subclassing USBError.
 """
+from __future__ import annotations
 
 import collections
 import contextlib
 from ctypes import byref, c_int, sizeof, POINTER, \
-    cast, c_uint8, c_uint16, c_ubyte, c_void_p, cdll, addressof, \
+    cast, c_uint8, c_uint16, c_ubyte, c_void_p, addressof, \
     c_char
-from ctypes.util import find_library
 import functools
 import inspect
 import itertools
@@ -60,6 +59,10 @@ import warnings
 import weakref
 from . import _libusb1 as libusb1
 from . import _version
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import Never
+
 __version__ = _version.get_versions()['version']
 # pylint: disable=wrong-import-order,ungrouped-imports
 if sys.platform == 'win32':
@@ -69,18 +72,30 @@ else:
 # pylint: enable=wrong-import-order,ungrouped-imports
 
 __all__ = [
-    'USBContext', 'USBDeviceHandle', 'USBDevice', 'hasCapability',
-    'USBPoller', 'USBTransfer', 'USBTransferHelper', 'EVENT_CALLBACK_SET',
-    'USBEndpoint', 'USBInterfaceSetting', 'USBInterface',
-    'USBConfiguration', 'DoomedTransferError', 'getVersion', 'USBError',
-    'setLogCallback', 'setLocale',
+    'EVENT_CALLBACK_SET',
+    'DoomedTransferError',
+    'USBConfiguration',
+    'USBContext',
+    'USBDevice',
+    'USBDeviceHandle',
+    'USBEndpoint',
+    'USBError',
+    'USBInterface',
+    'USBInterfaceSetting',
+    'USBPoller',
+    'USBTransfer',
+    'USBTransferHelper',
+    'getVersion',
+    'hasCapability',
     'loadLibrary',
+    'setLocale',
+    'setLogCallback',
 ]
 # Bind libusb1 constants and libusb1.USBError to this module, so user does not
 # have to import two modules.
 USBError = libusb1.USBError
 STATUS_TO_EXCEPTION_DICT = {}
-def __bindConstants():
+def __bindConstants() -> None:
     global_dict = globals()
     PREFIX = 'LIBUSB_'
     for name, value in libusb1.__dict__.items():
@@ -117,7 +132,7 @@ def raiseUSBError(
         # Avoid globals lookup on call to work during interpreter shutdown.
         __STATUS_TO_EXCEPTION_DICT=STATUS_TO_EXCEPTION_DICT,
         __USBError=USBError,
-    ): # pylint: disable=dangerous-default-value
+    ) -> Never: # pylint: disable=dangerous-default-value
     raise __STATUS_TO_EXCEPTION_DICT.get(value, __USBError)(value)
 
 def mayRaiseUSBError(
@@ -233,8 +248,7 @@ class DoomedTransferError(Exception):
     """Exception raised when altering/submitting a doomed transfer."""
 
 class USBTransfer:
-    """
-    USB asynchronous transfer control & data.
+    """USB asynchronous transfer control & data.
 
     All modification methods will raise if called on a submitted transfer.
     Methods noted as "should not be called on a submitted transfer" will not
@@ -245,6 +259,7 @@ class USBTransfer:
     change nothing for you, unless you are looking at underlying C transfer
     structure - which you should never have to.
     """
+
     __transfer = None
     __initialized = False
     __submitted_dict = {}
@@ -268,8 +283,8 @@ class USBTransfer:
         short_is_error,
         add_zero_packet,
     ):
-        """
-        You should not instanciate this class directly.
+        """You should not instanciate this class directly.
+
         Call "getTransfer" method on an USBDeviceHandle instance to get
         instances of this class.
         """
@@ -298,9 +313,9 @@ class USBTransfer:
             libusb_cancel_transfer=libusb1.libusb_cancel_transfer,
         )
 
-    def close(self):
-        """
-        Break reference cycles to allow instance to be garbage-collected.
+    def close(self) -> None:
+        """Break reference cycles to allow instance to be garbage-collected.
+
         Raises if called on a submitted transfer.
         """
         if self.isSubmitted():
@@ -351,15 +366,13 @@ class USBTransfer:
                     pass
         libusb_free_transfer(transfer)
 
-    def doom(self):
-        """
-        Prevent transfer from being submitted again.
-        """
+    def doom(self) -> None:
+        """Prevent transfer from being submitted again."""
         self.__doomed = True
 
     @classmethod
     # pylint: disable=unused-private-member
-    def __callbackWrapper(cls, transfer_p):
+    def __callbackWrapper(cls, transfer_p) -> None:
     # pylint: enable=unused-private-member
         """
         Makes it possible for user-provided callback to alter transfer when
@@ -375,23 +388,18 @@ class USBTransfer:
             self.close()
         # pylint: enable=protected-access
 
-    def setCallback(self, callback):
-        """
-        Change transfer's callback.
-        """
+    def setCallback(self, callback) -> None:
+        """Change transfer's callback."""
         self.__callback = callback
 
     def getCallback(self):
-        """
-        Get currently set callback.
-        """
+        """Get currently set callback."""
         return self.__callback
 
     def setControl(
             self, request_type, request, value, index, buffer_or_len,
-            callback=None, user_data=None, timeout=0):
-        """
-        Setup transfer for control use.
+            callback=None, user_data=None, timeout=0) -> None:
+        """Setup transfer for control use.
 
         request_type, request, value, index
             See USBDeviceHandle.controlWrite.
@@ -444,9 +452,8 @@ class USBTransfer:
 
     def setBulk(
             self, endpoint, buffer_or_len, callback=None, user_data=None,
-            timeout=0):
-        """
-        Setup transfer for bulk use.
+            timeout=0) -> None:
+        """Setup transfer for bulk use.
 
         endpoint
             Endpoint to submit transfer to. Defines transfer direction (see
@@ -484,9 +491,8 @@ class USBTransfer:
 
     def setInterrupt(
             self, endpoint, buffer_or_len, callback=None, user_data=None,
-            timeout=0):
-        """
-        Setup transfer for interrupt use.
+            timeout=0) -> None:
+        """Setup transfer for interrupt use.
 
         endpoint
             Endpoint to submit transfer to. Defines transfer direction (see
@@ -524,9 +530,8 @@ class USBTransfer:
 
     def setIsochronous(
             self, endpoint, buffer_or_len, callback=None,
-            user_data=None, timeout=0, iso_transfer_length_list=None):
-        """
-        Setup transfer for isochronous use.
+            user_data=None, timeout=0, iso_transfer_length_list=None) -> None:
+        """Setup transfer for isochronous use.
 
         endpoint
             Endpoint to submit transfer to. Defines transfer direction (see
@@ -603,8 +608,7 @@ class USBTransfer:
         self.__initialized = True
 
     def getType(self):
-        """
-        Get transfer type.
+        """Get transfer type.
 
         Returns one of:
             TRANSFER_TYPE_CONTROL
@@ -615,14 +619,12 @@ class USBTransfer:
         return self.__transfer.contents.type
 
     def getEndpoint(self):
-        """
-        Get endpoint.
-        """
+        """Get endpoint."""
         return self.__transfer.contents.endpoint
 
     def getStatus(self):
-        """
-        Get transfer status.
+        """Get transfer status.
+
         Should not be called on a submitted transfer.
         """
         return self.__transfer.contents.status
@@ -2559,7 +2561,7 @@ class USBContext(_LibUSB1Finalizer):
     # TODO: handleEventsTimeoutCompleted
 
     @_validContext
-    def interruptEventHandler(self):
+    def interruptEventHandler(self) -> None:
         """
         Interrupt any active thread that is handling events.
         This is mainly useful for interrupting a dedicated event handling thread
@@ -2569,7 +2571,7 @@ class USBContext(_LibUSB1Finalizer):
 
     @_validContext
     def setPollFDNotifiers(
-            self, added_cb=None, removed_cb=None, user_data=None):
+            self, added_cb=None, removed_cb=None, user_data=None) -> None:
         """
         Give libusb1 methods to call when it should add/remove file descriptor
         for polling.

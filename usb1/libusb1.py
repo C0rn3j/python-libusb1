@@ -16,7 +16,7 @@
 
 # pylint: disable=unused-wildcard-import,wrong-import-position
 # pylint: disable=wildcard-import,missing-module-docstring
-from __future__ import absolute_import
 from ._libusb1 import loadLibrary
-loadLibrary()
+
+_ = loadLibrary()
 from ._libusb1 import *
