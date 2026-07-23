@@ -61,7 +61,7 @@ from . import _libusb1 as libusb1
 from . import _version
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from typing import Never
+    from typing import NamedTuple, Never
 
 __version__ = _version.get_versions()['version']
 # pylint: disable=wrong-import-order,ungrouped-imports
@@ -144,10 +144,14 @@ def mayRaiseUSBError(
         __raiseUSBError(value)
     return value
 
-Version = collections.namedtuple(
-    'Version',
-    ['major', 'minor', 'micro', 'nano', 'rc', 'describe'],
-)
+class Version(NamedTuple):
+
+    major: int
+    minor: int
+    micro: int
+    nano: int
+    rc: str
+    describe: str
 
 # pylint: disable=undefined-variable
 CONTROL_SETUP = b'\x00' * CONTROL_SETUP_SIZE
@@ -173,7 +177,7 @@ EVENT_CALLBACK_SET = frozenset((
     # pylint: enable=undefined-variable
 ))
 
-def DEFAULT_ASYNC_TRANSFER_ERROR_CALLBACK(_):
+def DEFAULT_ASYNC_TRANSFER_ERROR_CALLBACK(_) -> bool:
     return False
 
 def create_binary_buffer(init_or_size):
