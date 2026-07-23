@@ -328,6 +328,15 @@ class USBTransferTests(unittest.TestCase):
         finally:
             del global_dict[ENUM_NAME]
 
+    def testStaticIntEnumConstants(self) -> None:
+        """IntEnum members have backward-compatible integer aliases."""
+        status = libusb1.libusb_transfer_status
+        member = status.LIBUSB_TRANSFER_TIMED_OUT
+        self.assertEqual(member.value, 2)
+        self.assertEqual(status.get(2), 'LIBUSB_TRANSFER_TIMED_OUT')
+        self.assertEqual(libusb1.LIBUSB_TRANSFER_TIMED_OUT, member)
+        self.assertIs(type(libusb1.LIBUSB_TRANSFER_TIMED_OUT), int)
+
     def testImplicitUSBContextOpening(self) -> None:
         """Test pre-1.5 API backward compatibility.
 

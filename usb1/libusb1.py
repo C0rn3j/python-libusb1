@@ -19,4 +19,5 @@
 from ._libusb1 import loadLibrary
 
 _ = loadLibrary()
+# TODO(Martin): Nasty nasty
 from ._libusb1 import *

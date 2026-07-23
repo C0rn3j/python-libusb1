@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import ctypes.util
 import errno
+from enum import IntEnum
 import os.path
 import platform
 import sys
@@ -37,6 +38,7 @@ from ctypes import (
     LittleEndianStructure,
     Structure,
     Union,
+    _Pointer,
     addressof,
     c_char,
     c_char_p,
@@ -56,7 +58,7 @@ from ctypes import (
     sizeof,
 )
 from threading import Lock
-from typing import TYPE_CHECKING
+from typing import Final, TYPE_CHECKING, TypeAlias
 
 if TYPE_CHECKING:
     from typing import Never
@@ -65,13 +67,24 @@ if TYPE_CHECKING:
         handle: c_int,
     ) -> None: ...
 
+class _LibusbIntEnum(IntEnum):
+    """IntEnum with the legacy value-to-name lookup helper."""
+
+    @classmethod
+    def get(cls, value: int, default=None):
+        try:
+            return cls(value).name
+        except ValueError:
+            return default
+
 class Enum:
+    """Backward-compatible helper formerly used to declare libusb constants."""
+
     def __init__(self, member_dict, scope_dict=None) -> None:
         if scope_dict is None:
-            # Affect caller's locals, not this module's.
-            # pylint: disable=protected-access
+            # Preserve the historical API without using it for declarations in
+            # this module.
             scope_dict = sys._getframe(1).f_locals
-            # pylint: enable=protected-access
         forward_dict = {}
         reverse_dict = {}
         next_value = 0
@@ -792,71 +805,98 @@ else:
 # standard USB stuff
 
 # Device and/or Interface Class codes
-libusb_class_code = Enum({
+class libusb_class_code(_LibusbIntEnum):
     # In the context of a device descriptor,
     # this bDeviceClass value indicates that each interface specifies its
     # own class information and all interfaces operate independently.
-    'LIBUSB_CLASS_PER_INTERFACE': 0,
+    LIBUSB_CLASS_PER_INTERFACE = 0
     # Audio class
-    'LIBUSB_CLASS_AUDIO': 1,
+    LIBUSB_CLASS_AUDIO = 1
     # Communications class
-    'LIBUSB_CLASS_COMM': 2,
+    LIBUSB_CLASS_COMM = 2
     # Human Interface Device class
-    'LIBUSB_CLASS_HID': 3,
+    LIBUSB_CLASS_HID = 3
     # Physical
-    'LIBUSB_CLASS_PHYSICAL': 5,
+    LIBUSB_CLASS_PHYSICAL = 5
     # Printer class
-    'LIBUSB_CLASS_PRINTER': 7,
+    LIBUSB_CLASS_PRINTER = 7
     # Picture transfer protocol class
-    'LIBUSB_CLASS_PTP': 6,
+    LIBUSB_CLASS_PTP = 6
     # Mass storage class
-    'LIBUSB_CLASS_MASS_STORAGE': 8,
+    LIBUSB_CLASS_MASS_STORAGE = 8
     # Hub class
-    'LIBUSB_CLASS_HUB': 9,
+    LIBUSB_CLASS_HUB = 9
     # Data class
-    'LIBUSB_CLASS_DATA': 10,
+    LIBUSB_CLASS_DATA = 10
     # Smart Card
-    'LIBUSB_CLASS_SMART_CARD': 0x0b,
+    LIBUSB_CLASS_SMART_CARD = 0x0b
     # Content Security
-    'LIBUSB_CLASS_CONTENT_SECURITY': 0x0d,
+    LIBUSB_CLASS_CONTENT_SECURITY = 0x0d
     # Video
-    'LIBUSB_CLASS_VIDEO': 0x0e,
+    LIBUSB_CLASS_VIDEO = 0x0e
     # Personal Healthcare
-    'LIBUSB_CLASS_PERSONAL_HEALTHCARE': 0x0f,
+    LIBUSB_CLASS_PERSONAL_HEALTHCARE = 0x0f
     # Diagnostic Device
-    'LIBUSB_CLASS_DIAGNOSTIC_DEVICE': 0xdc,
+    LIBUSB_CLASS_DIAGNOSTIC_DEVICE = 0xdc
     # Wireless class
-    'LIBUSB_CLASS_WIRELESS': 0xe0,
+    LIBUSB_CLASS_WIRELESS = 0xe0
     # Application class
-    'LIBUSB_CLASS_APPLICATION': 0xfe,
+    LIBUSB_CLASS_APPLICATION = 0xfe
     # Class is vendor-specific
-    'LIBUSB_CLASS_VENDOR_SPEC': 0xff
-})
+    LIBUSB_CLASS_VENDOR_SPEC = 0xff
+
+LIBUSB_CLASS_PER_INTERFACE: Final = int(libusb_class_code.LIBUSB_CLASS_PER_INTERFACE)
+LIBUSB_CLASS_AUDIO: Final = int(libusb_class_code.LIBUSB_CLASS_AUDIO)
+LIBUSB_CLASS_COMM: Final = int(libusb_class_code.LIBUSB_CLASS_COMM)
+LIBUSB_CLASS_HID: Final = int(libusb_class_code.LIBUSB_CLASS_HID)
+LIBUSB_CLASS_PHYSICAL: Final = int(libusb_class_code.LIBUSB_CLASS_PHYSICAL)
+LIBUSB_CLASS_PRINTER: Final = int(libusb_class_code.LIBUSB_CLASS_PRINTER)
+LIBUSB_CLASS_PTP: Final = int(libusb_class_code.LIBUSB_CLASS_PTP)
+LIBUSB_CLASS_MASS_STORAGE: Final = int(libusb_class_code.LIBUSB_CLASS_MASS_STORAGE)
+LIBUSB_CLASS_HUB: Final = int(libusb_class_code.LIBUSB_CLASS_HUB)
+LIBUSB_CLASS_DATA: Final = int(libusb_class_code.LIBUSB_CLASS_DATA)
+LIBUSB_CLASS_SMART_CARD: Final = int(libusb_class_code.LIBUSB_CLASS_SMART_CARD)
+LIBUSB_CLASS_CONTENT_SECURITY: Final = int(libusb_class_code.LIBUSB_CLASS_CONTENT_SECURITY)
+LIBUSB_CLASS_VIDEO: Final = int(libusb_class_code.LIBUSB_CLASS_VIDEO)
+LIBUSB_CLASS_PERSONAL_HEALTHCARE: Final = int(libusb_class_code.LIBUSB_CLASS_PERSONAL_HEALTHCARE)
+LIBUSB_CLASS_DIAGNOSTIC_DEVICE: Final = int(libusb_class_code.LIBUSB_CLASS_DIAGNOSTIC_DEVICE)
+LIBUSB_CLASS_WIRELESS: Final = int(libusb_class_code.LIBUSB_CLASS_WIRELESS)
+LIBUSB_CLASS_APPLICATION: Final = int(libusb_class_code.LIBUSB_CLASS_APPLICATION)
+LIBUSB_CLASS_VENDOR_SPEC: Final = int(libusb_class_code.LIBUSB_CLASS_VENDOR_SPEC)
 # pylint: disable=undefined-variable
 LIBUSB_CLASS_IMAGE = LIBUSB_CLASS_PTP
 # pylint: enable=undefined-variable
 
 # Descriptor types as defined by the USB specification.
-libusb_descriptor_type = Enum({
+class libusb_descriptor_type(_LibusbIntEnum):
     # Device descriptor. See libusb_device_descriptor.
-    'LIBUSB_DT_DEVICE': 0x01,
+    LIBUSB_DT_DEVICE = 0x01
     # Configuration descriptor. See libusb_config_descriptor.
-    'LIBUSB_DT_CONFIG': 0x02,
+    LIBUSB_DT_CONFIG = 0x02
     # String descriptor
-    'LIBUSB_DT_STRING': 0x03,
+    LIBUSB_DT_STRING = 0x03
     # Interface descriptor. See libusb_interface_descriptor.
-    'LIBUSB_DT_INTERFACE': 0x04,
+    LIBUSB_DT_INTERFACE = 0x04
     # Endpoint descriptor. See libusb_endpoint_descriptor.
-    'LIBUSB_DT_ENDPOINT': 0x05,
+    LIBUSB_DT_ENDPOINT = 0x05
     # HID descriptor
-    'LIBUSB_DT_HID': 0x21,
+    LIBUSB_DT_HID = 0x21
     # HID report descriptor
-    'LIBUSB_DT_REPORT': 0x22,
+    LIBUSB_DT_REPORT = 0x22
     # Physical descriptor
-    'LIBUSB_DT_PHYSICAL': 0x23,
+    LIBUSB_DT_PHYSICAL = 0x23
     # Hub descriptor
-    'LIBUSB_DT_HUB': 0x29,
-})
+    LIBUSB_DT_HUB = 0x29
+
+LIBUSB_DT_DEVICE: Final = int(libusb_descriptor_type.LIBUSB_DT_DEVICE)
+LIBUSB_DT_CONFIG: Final = int(libusb_descriptor_type.LIBUSB_DT_CONFIG)
+LIBUSB_DT_STRING: Final = int(libusb_descriptor_type.LIBUSB_DT_STRING)
+LIBUSB_DT_INTERFACE: Final = int(libusb_descriptor_type.LIBUSB_DT_INTERFACE)
+LIBUSB_DT_ENDPOINT: Final = int(libusb_descriptor_type.LIBUSB_DT_ENDPOINT)
+LIBUSB_DT_HID: Final = int(libusb_descriptor_type.LIBUSB_DT_HID)
+LIBUSB_DT_REPORT: Final = int(libusb_descriptor_type.LIBUSB_DT_REPORT)
+LIBUSB_DT_PHYSICAL: Final = int(libusb_descriptor_type.LIBUSB_DT_PHYSICAL)
+LIBUSB_DT_HUB: Final = int(libusb_descriptor_type.LIBUSB_DT_HUB)
 
 # Descriptor sizes per descriptor type
 LIBUSB_DT_DEVICE_SIZE = 18
@@ -891,66 +931,87 @@ USB_ENDPOINT_ADDRESS_MASK = LIBUSB_ENDPOINT_ADDRESS_MASK
 USB_ENDPOINT_DIR_MASK = LIBUSB_ENDPOINT_DIR_MASK
 
 # Endpoint direction. Values for bit 7 of the endpoint address scheme.
-libusb_endpoint_direction = Enum({
+class libusb_endpoint_direction(_LibusbIntEnum):
     # In: device-to-host
-    'LIBUSB_ENDPOINT_IN': 0x80,
+    LIBUSB_ENDPOINT_IN = 0x80
     # Out: host-to-device
-    'LIBUSB_ENDPOINT_OUT': 0x00
-})
+    LIBUSB_ENDPOINT_OUT = 0x00
+
+LIBUSB_ENDPOINT_IN: Final = int(libusb_endpoint_direction.LIBUSB_ENDPOINT_IN)
+LIBUSB_ENDPOINT_OUT: Final = int(libusb_endpoint_direction.LIBUSB_ENDPOINT_OUT)
 
 LIBUSB_TRANSFER_TYPE_MASK = 0x03 # in bmAttributes
 
 # Endpoint transfer type. Values for bits 0:1 of the endpoint attributes field.
-libusb_transfer_type = Enum({
+class libusb_transfer_type(_LibusbIntEnum):
     # Control endpoint
-    'LIBUSB_TRANSFER_TYPE_CONTROL': 0,
+    LIBUSB_TRANSFER_TYPE_CONTROL = 0
     # Isochronous endpoint
-    'LIBUSB_TRANSFER_TYPE_ISOCHRONOUS': 1,
+    LIBUSB_TRANSFER_TYPE_ISOCHRONOUS = 1
     # Bulk endpoint
-    'LIBUSB_TRANSFER_TYPE_BULK': 2,
+    LIBUSB_TRANSFER_TYPE_BULK = 2
     # Interrupt endpoint
-    'LIBUSB_TRANSFER_TYPE_INTERRUPT': 3,
-})
+    LIBUSB_TRANSFER_TYPE_INTERRUPT = 3
+
+LIBUSB_TRANSFER_TYPE_CONTROL: Final = int(libusb_transfer_type.LIBUSB_TRANSFER_TYPE_CONTROL)
+LIBUSB_TRANSFER_TYPE_ISOCHRONOUS: Final = int(libusb_transfer_type.LIBUSB_TRANSFER_TYPE_ISOCHRONOUS)
+LIBUSB_TRANSFER_TYPE_BULK: Final = int(libusb_transfer_type.LIBUSB_TRANSFER_TYPE_BULK)
+LIBUSB_TRANSFER_TYPE_INTERRUPT: Final = int(libusb_transfer_type.LIBUSB_TRANSFER_TYPE_INTERRUPT)
 
 # Standard requests, as defined in table 9-3 of the USB2 specifications
-libusb_standard_request = Enum({
+class libusb_standard_request(_LibusbIntEnum):
     # Request status of the specific recipient
-    'LIBUSB_REQUEST_GET_STATUS': 0x00,
+    LIBUSB_REQUEST_GET_STATUS = 0x00
     # Clear or disable a specific feature
-    'LIBUSB_REQUEST_CLEAR_FEATURE': 0x01,
+    LIBUSB_REQUEST_CLEAR_FEATURE = 0x01
     # 0x02 is reserved
     # Set or enable a specific feature
-    'LIBUSB_REQUEST_SET_FEATURE': 0x03,
+    LIBUSB_REQUEST_SET_FEATURE = 0x03
     # 0x04 is reserved
     # Set device address for all future accesses
-    'LIBUSB_REQUEST_SET_ADDRESS': 0x05,
+    LIBUSB_REQUEST_SET_ADDRESS = 0x05
     # Get the specified descriptor
-    'LIBUSB_REQUEST_GET_DESCRIPTOR': 0x06,
+    LIBUSB_REQUEST_GET_DESCRIPTOR = 0x06
     # Used to update existing descriptors or add new descriptors
-    'LIBUSB_REQUEST_SET_DESCRIPTOR': 0x07,
+    LIBUSB_REQUEST_SET_DESCRIPTOR = 0x07
     # Get the current device configuration value
-    'LIBUSB_REQUEST_GET_CONFIGURATION': 0x08,
+    LIBUSB_REQUEST_GET_CONFIGURATION = 0x08
     # Set device configuration
-    'LIBUSB_REQUEST_SET_CONFIGURATION': 0x09,
+    LIBUSB_REQUEST_SET_CONFIGURATION = 0x09
     # Return the selected alternate setting for the specified interface
-    'LIBUSB_REQUEST_GET_INTERFACE': 0x0a,
+    LIBUSB_REQUEST_GET_INTERFACE = 0x0a
     # Select an alternate interface for the specified interface
-    'LIBUSB_REQUEST_SET_INTERFACE': 0x0b,
+    LIBUSB_REQUEST_SET_INTERFACE = 0x0b
     # Set then report an endpoint's synchronization frame
-    'LIBUSB_REQUEST_SYNCH_FRAME': 0x0c,
-})
+    LIBUSB_REQUEST_SYNCH_FRAME = 0x0c
+
+LIBUSB_REQUEST_GET_STATUS: Final = int(libusb_standard_request.LIBUSB_REQUEST_GET_STATUS)
+LIBUSB_REQUEST_CLEAR_FEATURE: Final = int(libusb_standard_request.LIBUSB_REQUEST_CLEAR_FEATURE)
+LIBUSB_REQUEST_SET_FEATURE: Final = int(libusb_standard_request.LIBUSB_REQUEST_SET_FEATURE)
+LIBUSB_REQUEST_SET_ADDRESS: Final = int(libusb_standard_request.LIBUSB_REQUEST_SET_ADDRESS)
+LIBUSB_REQUEST_GET_DESCRIPTOR: Final = int(libusb_standard_request.LIBUSB_REQUEST_GET_DESCRIPTOR)
+LIBUSB_REQUEST_SET_DESCRIPTOR: Final = int(libusb_standard_request.LIBUSB_REQUEST_SET_DESCRIPTOR)
+LIBUSB_REQUEST_GET_CONFIGURATION: Final = int(libusb_standard_request.LIBUSB_REQUEST_GET_CONFIGURATION)
+LIBUSB_REQUEST_SET_CONFIGURATION: Final = int(libusb_standard_request.LIBUSB_REQUEST_SET_CONFIGURATION)
+LIBUSB_REQUEST_GET_INTERFACE: Final = int(libusb_standard_request.LIBUSB_REQUEST_GET_INTERFACE)
+LIBUSB_REQUEST_SET_INTERFACE: Final = int(libusb_standard_request.LIBUSB_REQUEST_SET_INTERFACE)
+LIBUSB_REQUEST_SYNCH_FRAME: Final = int(libusb_standard_request.LIBUSB_REQUEST_SYNCH_FRAME)
 
 # Request type bits of the bmRequestType field in control transfers.
-libusb_request_type = Enum({
+class libusb_request_type(_LibusbIntEnum):
     # Standard
-    'LIBUSB_REQUEST_TYPE_STANDARD': (0x00 << 5),
+    LIBUSB_REQUEST_TYPE_STANDARD = (0x00 << 5)
     # Class
-    'LIBUSB_REQUEST_TYPE_CLASS': (0x01 << 5),
+    LIBUSB_REQUEST_TYPE_CLASS = (0x01 << 5)
     # Vendor
-    'LIBUSB_REQUEST_TYPE_VENDOR': (0x02 << 5),
+    LIBUSB_REQUEST_TYPE_VENDOR = (0x02 << 5)
     # Reserved
-    'LIBUSB_REQUEST_TYPE_RESERVED': (0x03 << 5),
-})
+    LIBUSB_REQUEST_TYPE_RESERVED = (0x03 << 5)
+
+LIBUSB_REQUEST_TYPE_STANDARD: Final = int(libusb_request_type.LIBUSB_REQUEST_TYPE_STANDARD)
+LIBUSB_REQUEST_TYPE_CLASS: Final = int(libusb_request_type.LIBUSB_REQUEST_TYPE_CLASS)
+LIBUSB_REQUEST_TYPE_VENDOR: Final = int(libusb_request_type.LIBUSB_REQUEST_TYPE_VENDOR)
+LIBUSB_REQUEST_TYPE_RESERVED: Final = int(libusb_request_type.LIBUSB_REQUEST_TYPE_RESERVED)
 
 # BBB
 # pylint: disable=undefined-variable
@@ -962,44 +1023,55 @@ LIBUSB_TYPE_RESERVED = LIBUSB_REQUEST_TYPE_RESERVED
 
 # Recipient bits of the bmRequestType field in control transfers. Values 4
 # through 31 are reserved.
-libusb_request_recipient = Enum({
+class libusb_request_recipient(_LibusbIntEnum):
     # Device
-    'LIBUSB_RECIPIENT_DEVICE': 0x00,
+    LIBUSB_RECIPIENT_DEVICE = 0x00
     # Interface
-    'LIBUSB_RECIPIENT_INTERFACE': 0x01,
+    LIBUSB_RECIPIENT_INTERFACE = 0x01
     # Endpoint
-    'LIBUSB_RECIPIENT_ENDPOINT': 0x02,
+    LIBUSB_RECIPIENT_ENDPOINT = 0x02
     # Other
-    'LIBUSB_RECIPIENT_OTHER': 0x03,
-})
+    LIBUSB_RECIPIENT_OTHER = 0x03
+
+LIBUSB_RECIPIENT_DEVICE: Final = int(libusb_request_recipient.LIBUSB_RECIPIENT_DEVICE)
+LIBUSB_RECIPIENT_INTERFACE: Final = int(libusb_request_recipient.LIBUSB_RECIPIENT_INTERFACE)
+LIBUSB_RECIPIENT_ENDPOINT: Final = int(libusb_request_recipient.LIBUSB_RECIPIENT_ENDPOINT)
+LIBUSB_RECIPIENT_OTHER: Final = int(libusb_request_recipient.LIBUSB_RECIPIENT_OTHER)
 
 LIBUSB_ISO_SYNC_TYPE_MASK = 0x0c
 
 # Synchronization type for isochronous endpoints. Values for bits 2:3 of the
 # bmAttributes field in libusb_endpoint_descriptor.
-libusb_iso_sync_type = Enum({
+class libusb_iso_sync_type(_LibusbIntEnum):
     # No synchronization
-    'LIBUSB_ISO_SYNC_TYPE_NONE': 0,
+    LIBUSB_ISO_SYNC_TYPE_NONE = 0
     # Asynchronous
-    'LIBUSB_ISO_SYNC_TYPE_ASYNC': 1,
+    LIBUSB_ISO_SYNC_TYPE_ASYNC = 1
     # Adaptive
-    'LIBUSB_ISO_SYNC_TYPE_ADAPTIVE': 2,
+    LIBUSB_ISO_SYNC_TYPE_ADAPTIVE = 2
     # Synchronous
-    'LIBUSB_ISO_SYNC_TYPE_SYNC': 3,
-})
+    LIBUSB_ISO_SYNC_TYPE_SYNC = 3
+
+LIBUSB_ISO_SYNC_TYPE_NONE: Final = int(libusb_iso_sync_type.LIBUSB_ISO_SYNC_TYPE_NONE)
+LIBUSB_ISO_SYNC_TYPE_ASYNC: Final = int(libusb_iso_sync_type.LIBUSB_ISO_SYNC_TYPE_ASYNC)
+LIBUSB_ISO_SYNC_TYPE_ADAPTIVE: Final = int(libusb_iso_sync_type.LIBUSB_ISO_SYNC_TYPE_ADAPTIVE)
+LIBUSB_ISO_SYNC_TYPE_SYNC: Final = int(libusb_iso_sync_type.LIBUSB_ISO_SYNC_TYPE_SYNC)
 
 LIBUSB_ISO_USAGE_TYPE_MASK = 0x30
 
 # Usage type for isochronous endpoints. Values for bits 4:5 of the
 # bmAttributes field in libusb_endpoint_descriptor.
-libusb_iso_usage_type = Enum({
+class libusb_iso_usage_type(_LibusbIntEnum):
     # Data endpoint
-    'LIBUSB_ISO_USAGE_TYPE_DATA': 0,
+    LIBUSB_ISO_USAGE_TYPE_DATA = 0
     # Feedback endpoint
-    'LIBUSB_ISO_USAGE_TYPE_FEEDBACK': 1,
+    LIBUSB_ISO_USAGE_TYPE_FEEDBACK = 1
     # Implicit feedback Data endpoint
-    'LIBUSB_ISO_USAGE_TYPE_IMPLICIT': 2,
-})
+    LIBUSB_ISO_USAGE_TYPE_IMPLICIT = 2
+
+LIBUSB_ISO_USAGE_TYPE_DATA: Final = int(libusb_iso_usage_type.LIBUSB_ISO_USAGE_TYPE_DATA)
+LIBUSB_ISO_USAGE_TYPE_FEEDBACK: Final = int(libusb_iso_usage_type.LIBUSB_ISO_USAGE_TYPE_FEEDBACK)
+LIBUSB_ISO_USAGE_TYPE_IMPLICIT: Final = int(libusb_iso_usage_type.LIBUSB_ISO_USAGE_TYPE_IMPLICIT)
 
 # A structure representing the standard USB device descriptor. This
 # descriptor is documented in section 9.6.1 of the USB 2.0 specification.
@@ -1183,102 +1255,138 @@ class libusb_init_option(Structure):
         ('value', libusb_init_option_value),
     ]
 
-libusb_speed = Enum({
+class libusb_speed(_LibusbIntEnum):
     # The OS doesn't report or know the device speed.
-    'LIBUSB_SPEED_UNKNOWN': 0,
+    LIBUSB_SPEED_UNKNOWN = 0
     # The device is operating at low speed (1.5MBit/s).
-    'LIBUSB_SPEED_LOW': 1,
+    LIBUSB_SPEED_LOW = 1
     # The device is operating at full speed (12MBit/s).
-    'LIBUSB_SPEED_FULL': 2,
+    LIBUSB_SPEED_FULL = 2
     # The device is operating at high speed (480MBit/s).
-    'LIBUSB_SPEED_HIGH': 3,
+    LIBUSB_SPEED_HIGH = 3
     # The device is operating at super speed (5000MBit/s).
-    'LIBUSB_SPEED_SUPER': 4,
+    LIBUSB_SPEED_SUPER = 4
     # The device is operating at super speed plus (10000MBit/s).
-    'LIBUSB_SPEED_SUPER_PLUS': 5,
+    LIBUSB_SPEED_SUPER_PLUS = 5
     # The device is operating at super speed plus x2 (20000MBit/s).
-    'LIBUSB_SPEED_SUPER_PLUS_X2': 6,
-})
+    LIBUSB_SPEED_SUPER_PLUS_X2 = 6
 
-libusb_supported_speed = Enum({
+LIBUSB_SPEED_UNKNOWN: Final = int(libusb_speed.LIBUSB_SPEED_UNKNOWN)
+LIBUSB_SPEED_LOW: Final = int(libusb_speed.LIBUSB_SPEED_LOW)
+LIBUSB_SPEED_FULL: Final = int(libusb_speed.LIBUSB_SPEED_FULL)
+LIBUSB_SPEED_HIGH: Final = int(libusb_speed.LIBUSB_SPEED_HIGH)
+LIBUSB_SPEED_SUPER: Final = int(libusb_speed.LIBUSB_SPEED_SUPER)
+LIBUSB_SPEED_SUPER_PLUS: Final = int(libusb_speed.LIBUSB_SPEED_SUPER_PLUS)
+LIBUSB_SPEED_SUPER_PLUS_X2: Final = int(libusb_speed.LIBUSB_SPEED_SUPER_PLUS_X2)
+
+class libusb_supported_speed(_LibusbIntEnum):
     # Low speed operation supported (1.5MBit/s).
-    'LIBUSB_LOW_SPEED_OPERATION': 1,
+    LIBUSB_LOW_SPEED_OPERATION = 1
     # Full speed operation supported (12MBit/s).
-    'LIBUSB_FULL_SPEED_OPERATION': 2,
+    LIBUSB_FULL_SPEED_OPERATION = 2
     # High speed operation supported (480MBit/s).
-    'LIBUSB_HIGH_SPEED_OPERATION': 4,
+    LIBUSB_HIGH_SPEED_OPERATION = 4
     # Superspeed operation supported (5000MBit/s).
-    'LIBUSB_5GBPS_OPERATION': 8,
-})
+    LIBUSB_5GBPS_OPERATION = 8
+
+LIBUSB_LOW_SPEED_OPERATION: Final = int(libusb_supported_speed.LIBUSB_LOW_SPEED_OPERATION)
+LIBUSB_FULL_SPEED_OPERATION: Final = int(libusb_supported_speed.LIBUSB_FULL_SPEED_OPERATION)
+LIBUSB_HIGH_SPEED_OPERATION: Final = int(libusb_supported_speed.LIBUSB_HIGH_SPEED_OPERATION)
+LIBUSB_5GBPS_OPERATION: Final = int(libusb_supported_speed.LIBUSB_5GBPS_OPERATION)
 
 # Error codes. Most libusb functions return 0 on success or one of these
 # codes on failure.
-libusb_error = Enum({
+class libusb_error(_LibusbIntEnum):
     # Success (no error)
-    'LIBUSB_SUCCESS': 0,
+    LIBUSB_SUCCESS = 0
     # Input/output error
-    'LIBUSB_ERROR_IO': -1,
+    LIBUSB_ERROR_IO = -1
     # Invalid parameter
-    'LIBUSB_ERROR_INVALID_PARAM': -2,
+    LIBUSB_ERROR_INVALID_PARAM = -2
     # Access denied (insufficient permissions)
-    'LIBUSB_ERROR_ACCESS': -3,
+    LIBUSB_ERROR_ACCESS = -3
     # No such device (it may have been disconnected)
-    'LIBUSB_ERROR_NO_DEVICE': -4,
+    LIBUSB_ERROR_NO_DEVICE = -4
     # Entity not found
-    'LIBUSB_ERROR_NOT_FOUND': -5,
+    LIBUSB_ERROR_NOT_FOUND = -5
     # Resource busy
-    'LIBUSB_ERROR_BUSY': -6,
+    LIBUSB_ERROR_BUSY = -6
     # Operation timed out
-    'LIBUSB_ERROR_TIMEOUT': -7,
+    LIBUSB_ERROR_TIMEOUT = -7
     # Overflow
-    'LIBUSB_ERROR_OVERFLOW': -8,
+    LIBUSB_ERROR_OVERFLOW = -8
     # Pipe error
-    'LIBUSB_ERROR_PIPE': -9,
+    LIBUSB_ERROR_PIPE = -9
     # System call interrupted (perhaps due to signal)
-    'LIBUSB_ERROR_INTERRUPTED': -10,
+    LIBUSB_ERROR_INTERRUPTED = -10
     # Insufficient memory
-    'LIBUSB_ERROR_NO_MEM': -11,
+    LIBUSB_ERROR_NO_MEM = -11
     # Operation not supported or unimplemented on this platform
-    'LIBUSB_ERROR_NOT_SUPPORTED': -12,
+    LIBUSB_ERROR_NOT_SUPPORTED = -12
     # Other error
-    'LIBUSB_ERROR_OTHER': -99,
-})
+    LIBUSB_ERROR_OTHER = -99
+
+LIBUSB_SUCCESS: Final = int(libusb_error.LIBUSB_SUCCESS)
+LIBUSB_ERROR_IO: Final = int(libusb_error.LIBUSB_ERROR_IO)
+LIBUSB_ERROR_INVALID_PARAM: Final = int(libusb_error.LIBUSB_ERROR_INVALID_PARAM)
+LIBUSB_ERROR_ACCESS: Final = int(libusb_error.LIBUSB_ERROR_ACCESS)
+LIBUSB_ERROR_NO_DEVICE: Final = int(libusb_error.LIBUSB_ERROR_NO_DEVICE)
+LIBUSB_ERROR_NOT_FOUND: Final = int(libusb_error.LIBUSB_ERROR_NOT_FOUND)
+LIBUSB_ERROR_BUSY: Final = int(libusb_error.LIBUSB_ERROR_BUSY)
+LIBUSB_ERROR_TIMEOUT: Final = int(libusb_error.LIBUSB_ERROR_TIMEOUT)
+LIBUSB_ERROR_OVERFLOW: Final = int(libusb_error.LIBUSB_ERROR_OVERFLOW)
+LIBUSB_ERROR_PIPE: Final = int(libusb_error.LIBUSB_ERROR_PIPE)
+LIBUSB_ERROR_INTERRUPTED: Final = int(libusb_error.LIBUSB_ERROR_INTERRUPTED)
+LIBUSB_ERROR_NO_MEM: Final = int(libusb_error.LIBUSB_ERROR_NO_MEM)
+LIBUSB_ERROR_NOT_SUPPORTED: Final = int(libusb_error.LIBUSB_ERROR_NOT_SUPPORTED)
+LIBUSB_ERROR_OTHER: Final = int(libusb_error.LIBUSB_ERROR_OTHER)
 
 # Transfer status codes
-libusb_transfer_status = Enum({
+class libusb_transfer_status(_LibusbIntEnum):
     # Transfer completed without error. Note that this does not indicate
     # that the entire amount of requested data was transferred.
-    'LIBUSB_TRANSFER_COMPLETED': 0,
+    LIBUSB_TRANSFER_COMPLETED = 0
     # Transfer failed
-    'LIBUSB_TRANSFER_ERROR': 1,
+    LIBUSB_TRANSFER_ERROR = 1
     # Transfer timed out
-    'LIBUSB_TRANSFER_TIMED_OUT': 2,
+    LIBUSB_TRANSFER_TIMED_OUT = 2
     # Transfer was cancelled
-    'LIBUSB_TRANSFER_CANCELLED': 3,
+    LIBUSB_TRANSFER_CANCELLED = 3
     # For bulk/interrupt endpoints: halt condition detected (endpoint
     # stalled). For control endpoints: control request not supported.
-    'LIBUSB_TRANSFER_STALL': 4,
+    LIBUSB_TRANSFER_STALL = 4
     # Device was disconnected
-    'LIBUSB_TRANSFER_NO_DEVICE': 5,
+    LIBUSB_TRANSFER_NO_DEVICE = 5
     # Device sent more data than requested
-    'LIBUSB_TRANSFER_OVERFLOW': 6,
-})
+    LIBUSB_TRANSFER_OVERFLOW = 6
+
+LIBUSB_TRANSFER_COMPLETED: Final = int(libusb_transfer_status.LIBUSB_TRANSFER_COMPLETED)
+LIBUSB_TRANSFER_ERROR: Final = int(libusb_transfer_status.LIBUSB_TRANSFER_ERROR)
+LIBUSB_TRANSFER_TIMED_OUT: Final = int(libusb_transfer_status.LIBUSB_TRANSFER_TIMED_OUT)
+LIBUSB_TRANSFER_CANCELLED: Final = int(libusb_transfer_status.LIBUSB_TRANSFER_CANCELLED)
+LIBUSB_TRANSFER_STALL: Final = int(libusb_transfer_status.LIBUSB_TRANSFER_STALL)
+LIBUSB_TRANSFER_NO_DEVICE: Final = int(libusb_transfer_status.LIBUSB_TRANSFER_NO_DEVICE)
+LIBUSB_TRANSFER_OVERFLOW: Final = int(libusb_transfer_status.LIBUSB_TRANSFER_OVERFLOW)
 
 # libusb_transfer.flags values
-libusb_transfer_flags = Enum({
+class libusb_transfer_flags(_LibusbIntEnum):
     # Report short frames as errors
-    'LIBUSB_TRANSFER_SHORT_NOT_OK': 1 << 0,
+    LIBUSB_TRANSFER_SHORT_NOT_OK = 1 << 0
     # Automatically free() transfer buffer during libusb_free_transfer()
-    'LIBUSB_TRANSFER_FREE_BUFFER': 1 << 1,
+    LIBUSB_TRANSFER_FREE_BUFFER = 1 << 1
     # Automatically call libusb_free_transfer() after callback returns.
     # If this flag is set, it is illegal to call libusb_free_transfer()
     # from your transfer callback, as this will result in a double-free
     # when this flag is acted upon.
-    'LIBUSB_TRANSFER_FREE_TRANSFER': 1 << 2,
+    LIBUSB_TRANSFER_FREE_TRANSFER = 1 << 2
     # Terminate transfers that are a multiple of the endpoint's
     # wMaxPacketSize with an extra zero length packet.
-    'LIBUSB_TRANSFER_ADD_ZERO_PACKET': 1 << 3,
-})
+    LIBUSB_TRANSFER_ADD_ZERO_PACKET = 1 << 3
+
+LIBUSB_TRANSFER_SHORT_NOT_OK: Final = int(libusb_transfer_flags.LIBUSB_TRANSFER_SHORT_NOT_OK)
+LIBUSB_TRANSFER_FREE_BUFFER: Final = int(libusb_transfer_flags.LIBUSB_TRANSFER_FREE_BUFFER)
+LIBUSB_TRANSFER_FREE_TRANSFER: Final = int(libusb_transfer_flags.LIBUSB_TRANSFER_FREE_TRANSFER)
+LIBUSB_TRANSFER_ADD_ZERO_PACKET: Final = int(libusb_transfer_flags.LIBUSB_TRANSFER_ADD_ZERO_PACKET)
 
 # Isochronous packet descriptor.
 class libusb_iso_packet_descriptor(Structure):
@@ -1293,37 +1401,53 @@ libusb_transfer_p = POINTER(libusb_transfer)
 
 libusb_transfer_cb_fn_p = LIBUSB_CALL_FUNCTYPE(None, libusb_transfer_p)
 
-libusb_capability = Enum({
+class libusb_capability(_LibusbIntEnum):
     # The libusb_has_capability() API is available.
-    'LIBUSB_CAP_HAS_CAPABILITY': 0x0000,
+    LIBUSB_CAP_HAS_CAPABILITY = 0x0000
     # Hotplug support is available.
-    'LIBUSB_CAP_HAS_HOTPLUG': 0x0001,
+    LIBUSB_CAP_HAS_HOTPLUG = 0x0001
     # The library can access HID devices without requiring user intervention.
-    'LIBUSB_CAP_HAS_HID_ACCESS': 0x0100,
+    LIBUSB_CAP_HAS_HID_ACCESS = 0x0100
     # The library supports detaching of the default USB driver.
-    'LIBUSB_CAP_SUPPORTS_DETACH_KERNEL_DRIVER': 0x0101,
-})
+    LIBUSB_CAP_SUPPORTS_DETACH_KERNEL_DRIVER = 0x0101
 
-libusb_log_level = Enum({
-    'LIBUSB_LOG_LEVEL_NONE': 0,
-    'LIBUSB_LOG_LEVEL_ERROR': 1,
-    'LIBUSB_LOG_LEVEL_WARNING': 2,
-    'LIBUSB_LOG_LEVEL_INFO': 3,
-    'LIBUSB_LOG_LEVEL_DEBUG': 4,
-})
+LIBUSB_CAP_HAS_CAPABILITY: Final = int(libusb_capability.LIBUSB_CAP_HAS_CAPABILITY)
+LIBUSB_CAP_HAS_HOTPLUG: Final = int(libusb_capability.LIBUSB_CAP_HAS_HOTPLUG)
+LIBUSB_CAP_HAS_HID_ACCESS: Final = int(libusb_capability.LIBUSB_CAP_HAS_HID_ACCESS)
+LIBUSB_CAP_SUPPORTS_DETACH_KERNEL_DRIVER: Final = int(libusb_capability.LIBUSB_CAP_SUPPORTS_DETACH_KERNEL_DRIVER)
 
-libusb_log = Enum({
-    'LIBUSB_LOG_CB_GLOBAL': 1 << 0,
-    'LIBUSB_LOG_CB_CONTEXT': 1 << 1,
-})
+class libusb_log_level(_LibusbIntEnum):
+    LIBUSB_LOG_LEVEL_NONE = 0
+    LIBUSB_LOG_LEVEL_ERROR = 1
+    LIBUSB_LOG_LEVEL_WARNING = 2
+    LIBUSB_LOG_LEVEL_INFO = 3
+    LIBUSB_LOG_LEVEL_DEBUG = 4
 
-libusb_option = Enum({
-    'LIBUSB_OPTION_LOG_LEVEL': 0,
-    'LIBUSB_OPTION_USE_USBDK': 1,
-    'LIBUSB_OPTION_NO_DEVICE_DISCOVERY': 2,
-    'LIBUSB_OPTION_LOG_CB': 3,
-    'LIBUSB_OPTION_MAX': 4,
-})
+LIBUSB_LOG_LEVEL_NONE: Final = int(libusb_log_level.LIBUSB_LOG_LEVEL_NONE)
+LIBUSB_LOG_LEVEL_ERROR: Final = int(libusb_log_level.LIBUSB_LOG_LEVEL_ERROR)
+LIBUSB_LOG_LEVEL_WARNING: Final = int(libusb_log_level.LIBUSB_LOG_LEVEL_WARNING)
+LIBUSB_LOG_LEVEL_INFO: Final = int(libusb_log_level.LIBUSB_LOG_LEVEL_INFO)
+LIBUSB_LOG_LEVEL_DEBUG: Final = int(libusb_log_level.LIBUSB_LOG_LEVEL_DEBUG)
+
+class libusb_log(_LibusbIntEnum):
+    LIBUSB_LOG_CB_GLOBAL = 1 << 0
+    LIBUSB_LOG_CB_CONTEXT = 1 << 1
+
+LIBUSB_LOG_CB_GLOBAL: Final = int(libusb_log.LIBUSB_LOG_CB_GLOBAL)
+LIBUSB_LOG_CB_CONTEXT: Final = int(libusb_log.LIBUSB_LOG_CB_CONTEXT)
+
+class libusb_option(_LibusbIntEnum):
+    LIBUSB_OPTION_LOG_LEVEL = 0
+    LIBUSB_OPTION_USE_USBDK = 1
+    LIBUSB_OPTION_NO_DEVICE_DISCOVERY = 2
+    LIBUSB_OPTION_LOG_CB = 3
+    LIBUSB_OPTION_MAX = 4
+
+LIBUSB_OPTION_LOG_LEVEL: Final = int(libusb_option.LIBUSB_OPTION_LOG_LEVEL)
+LIBUSB_OPTION_USE_USBDK: Final = int(libusb_option.LIBUSB_OPTION_USE_USBDK)
+LIBUSB_OPTION_NO_DEVICE_DISCOVERY: Final = int(libusb_option.LIBUSB_OPTION_NO_DEVICE_DISCOVERY)
+LIBUSB_OPTION_LOG_CB: Final = int(libusb_option.LIBUSB_OPTION_LOG_CB)
+LIBUSB_OPTION_MAX: Final = int(libusb_option.LIBUSB_OPTION_MAX)
 
 # Get the data section of a control transfer. This convenience function is here
 # to remind you that the data does not start until 8 bytes into the actual
@@ -1532,14 +1656,17 @@ libusb_pollfd_removed_cb_p = LIBUSB_CALL_FUNCTYPE(None, c_int, py_object)
 #typedef int libusb_hotplug_callback_handle;
 libusb_hotplug_callback_handle = c_int
 
-libusb_hotplug_flag = Enum({
-    'LIBUSB_HOTPLUG_ENUMERATE': 1,
-})
+class libusb_hotplug_flag(_LibusbIntEnum):
+    LIBUSB_HOTPLUG_ENUMERATE = 1
 
-libusb_hotplug_event = Enum({
-    'LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED': 0x01,
-    'LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT': 0x02,
-})
+LIBUSB_HOTPLUG_ENUMERATE: Final = int(libusb_hotplug_flag.LIBUSB_HOTPLUG_ENUMERATE)
+
+class libusb_hotplug_event(_LibusbIntEnum):
+    LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED = 0x01
+    LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT = 0x02
+
+LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED: Final = int(libusb_hotplug_event.LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED)
+LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT: Final = int(libusb_hotplug_event.LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT)
 
 LIBUSB_HOTPLUG_NO_FLAGS = 0
 LIBUSB_HOTPLUG_MATCH_ANY = -1
