@@ -1,0 +1,51 @@
+#[build-system]
+#requires = ["setuptools>=77"]
+#build-backend = "setuptools.build_meta"
+#
+#[project]
+#name = "usb1"
+#version = "3.4.0"
+#description = "Pure-python wrapper for libusb-1.0"
+#readme = { file = "README.rst", content-type = "text/x-rst" }
+#requires-python = ">=3.11"
+#license = "GPL-2.0-or-later"
+#authors = [
+#    { name = "Vincent Pelletier", email = "plr.vincent@gmail.com" },
+#]
+#keywords = ["usb", "libusb"]
+#classifiers = [
+#    "Intended Audience :: Information Technology",
+#    "Operating System :: POSIX :: Linux",
+#    "Programming Language :: Python :: 3",
+#    "Programming Language :: Python :: 3.11",
+#    "Programming Language :: Python :: 3.12",
+#    "Programming Language :: Python :: 3.13",
+#    "Programming Language :: Python :: 3.14",
+#    "Topic :: System :: Hardware :: Hardware Drivers",
+#]
+#
+#[project.urls]
+#Homepage = "https://github.com/vpelletier/python-libusb1"
+#
+#[tool.setuptools.packages.find]
+#include = ["usb1*"]
+
+[tool.ruff]
+line-length = 80
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "single"
+
+[tool.ruff.format]
+quote-style = "single"
+indent-style = "space"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D203",   # incorrect-blank-line-before-class         - Clashes with D211
+    #"D211",   # no-blank-line-before-class                - Clashes with D203
+    #"D212",   # multi-line-summary-first-line             - Clashes with D213
+    "D213",   # multi-line-summary-second-line            - Clashes with D212
+    "COM812"  # missing-trailing-comma                    - Formatter takes care of this
+]
