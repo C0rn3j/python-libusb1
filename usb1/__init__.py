@@ -44,6 +44,7 @@ SUPER_SPEED_OPERATION, so it is a valid python identifier.
 All LIBUSB_ERROR_* constants are available in this module as exception classes,
 subclassing USBError.
 """
+from __future__ import annotations
 
 import collections
 import contextlib
@@ -60,6 +61,9 @@ import warnings
 import weakref
 from . import _libusb1 as libusb1
 from . import _version
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import NamedTuple
 __version__ = _version.get_versions()['version']
 # pylint: disable=wrong-import-order,ungrouped-imports
 if sys.platform == 'win32':
@@ -129,10 +133,15 @@ def mayRaiseUSBError(
         __raiseUSBError(value)
     return value
 
-Version = collections.namedtuple(
-    'Version',
-    ['major', 'minor', 'micro', 'nano', 'rc', 'describe'],
-)
+class Version(NamedTuple):
+
+    major: int
+    minor: int
+    micro: int
+    nano: int
+    rc: str
+    describe: str
+
 
 # pylint: disable=undefined-variable
 CONTROL_SETUP = b'\x00' * CONTROL_SETUP_SIZE
