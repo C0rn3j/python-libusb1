@@ -14,6 +14,7 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+import logging
 from setuptools import setup
 from setuptools import Command
 import csv
@@ -44,10 +45,10 @@ class upload(Command):
     """
     user_options = []
 
-    def initialize_options(self):
+    def initialize_options(self) -> None:
         pass
 
-    def finalize_options(self):
+    def finalize_options(self) -> None:
         pass
 
     def run(self):
@@ -60,30 +61,30 @@ cmdclass['upload'] = upload
 class update_libusb(Command):
     user_options = []
 
-    def initialize_options(self):
+    def initialize_options(self) -> None:
         pass
 
-    def finalize_options(self):
+    def finalize_options(self) -> None:
         pass
 
     class WindowsBinariesArchiveLinkFinder(HTMLParser):
         found = None
         __a_href = None
-        def handle_starttag(self, tag, attrs):
+        def handle_starttag(self, tag, attrs) -> None:
             if tag == 'a':
                 assert self.__a_href is None, repr(self.__a_href)
                 self.__a_href = dict(attrs).get('href')
 
-        def handle_endtag(self, tag):
+        def handle_endtag(self, tag) -> None:
             if tag == 'a':
                 self.__a_href = None
 
-        def handle_data(self, data):
+        def handle_data(self, data) -> None:
             if self.__a_href is not None and data == 'Latest Windows Binaries':
                 assert self.found is None, repr(self.found)
                 self.found = self.__a_href
 
-    def run(self):
+    def run(self) -> None:
         finder = self.WindowsBinariesArchiveLinkFinder()
         finder.feed(urlopen('https://libusb.info/').read().decode('utf-8'))
         finder.close()
@@ -102,18 +103,22 @@ class update_libusb(Command):
             for suffix in ('', '.asc'):
                 with open(archive_path + suffix, 'wb') as archive_file:
                     archive_file.write(urlopen(url + suffix).read())
-        # to build/update trustedkeys-libusb.kbx:
-        # gpg --no-default-keyring --keyring trustedkeys-libusb.kbx --receive-keys ...
-        subprocess.check_call(
-            [
-                'gpgv',
-                '--keyring', 'trustedkeys-libusb.kbx',
-                archive_path + '.asc', archive_path,
-            ],
-            # gnupg will not shut its pie hole.
-            stderr=subprocess.DEVNULL,
-            close_fds=True,
-        )
+        # to build/update trustedkeys-libusb.kbx see setup.sh
+        try:
+            _ = subprocess.check_call(
+                [
+                    'gpgv',
+                    '--keyring', 'trustedkeys-libusb.kbx',
+                    archive_path + '.asc', archive_path,
+                ],
+                # gnupg will not shut its pie hole.
+                #stderr=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                close_fds=True,
+            )
+        except Exception:
+            logging.exception("GPG failed to run")
         # This check is for the maintainer to notice a new release, and
         # to retrospectively confirm that a release was done with files
         # from a certain archive (and not just any signed release).
@@ -131,7 +136,7 @@ class update_libusb(Command):
             ('VS2019/MS32/dll/libusb-1.0.dll', os.path.join(build_dir, 'win32')),
             ('VS2019/MS64/dll/libusb-1.0.dll', os.path.join(build_dir, 'win_amd64')),
         ):
-            subprocess.check_call(
+            _ = subprocess.check_call(
                 [
                     '7z', 'e', '-aoa',
                     '-o' + out_dir,
@@ -170,7 +175,7 @@ class update_libusb(Command):
                 raise ValueError(f'Peres stdout: {peres_stdout!r}') from exc
 cmdclass['update_libusb'] = update_libusb
 
-setup(
+_ = setup(
     version=versioneer.get_version(),
     cmdclass=cmdclass,
 
