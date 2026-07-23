@@ -61,9 +61,9 @@ import warnings
 import weakref
 from . import _libusb1 as libusb1
 from . import _version
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 if TYPE_CHECKING:
-    from typing import NamedTuple
+    pass
 __version__ = _version.get_versions()['version']
 # pylint: disable=wrong-import-order,ungrouped-imports
 if sys.platform == 'win32':
