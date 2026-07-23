@@ -46,7 +46,6 @@ subclassing USBError.
 """
 from __future__ import annotations
 
-import collections
 import contextlib
 from ctypes import byref, c_int, sizeof, POINTER, \
     cast, c_uint8, c_uint16, c_ubyte, c_void_p, cdll, addressof, \
